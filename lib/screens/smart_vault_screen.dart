@@ -28,7 +28,15 @@ class SmartVaultScreen extends StatelessWidget {
               }
               final docName = docs.keys.elementAt(index);
               final isVerified = docs.values.elementAt(index);
-              return _buildDocCard(docName, isVerified ? 'Verified' : 'Draft', isVerified ? Colors.green : Colors.grey);
+              // Find copy count from steps
+              int copyCount = 0;
+              for (var step in provider.steps) {
+                if (step.requiredDocuments.containsKey(docName)) {
+                  copyCount = step.requiredDocuments[docName]!;
+                  break;
+                }
+              }
+              return _buildDocCard(docName, isVerified ? 'Verified' : 'Draft', isVerified ? Colors.green : Colors.grey, copyCount);
             },
           );
         },
@@ -45,27 +53,50 @@ class SmartVaultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDocCard(String title, String status, Color statusColor) {
+  Widget _buildDocCard(String title, String status, Color statusColor, int copyCount) {
     return Card(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.insert_drive_file, size: 48, color: Colors.blue),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.insert_drive_file, size: 40, color: Colors.blue),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Text(
-              status,
-              style: TextStyle(color: statusColor, fontSize: 12),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                status,
+                style: TextStyle(color: statusColor, fontSize: 10),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            if (copyCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Text(
+                  '$copyCount Copies',
+                  style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
