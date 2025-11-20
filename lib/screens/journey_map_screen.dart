@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/journey_step.dart';
 import '../providers/journey_provider.dart';
 import '../widgets/copy_badge.dart';
@@ -240,11 +241,8 @@ class _JourneyStepItem extends StatelessWidget {
         children: step.requiredDocuments.keys.map((docName) {
           return SimpleDialogOption(
             onPressed: () {
-              Provider.of<JourneyProvider>(context, listen: false).uploadDocument(docName);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$docName uploaded to Smart Vault!')),
-              );
+              _showSourceDialog(context, docName);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -258,6 +256,45 @@ class _JourneyStepItem extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _showSourceDialog(BuildContext context, String docName) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text('Upload $docName'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () {
+              Provider.of<JourneyProvider>(context, listen: false)
+                  .uploadDocument(docName, ImageSource.camera);
+              Navigator.pop(context);
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.camera_alt),
+                SizedBox(width: 12),
+                Text('Take Photo'),
+              ],
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () {
+              Provider.of<JourneyProvider>(context, listen: false)
+                  .uploadDocument(docName, ImageSource.gallery);
+              Navigator.pop(context);
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.photo_library),
+                SizedBox(width: 12),
+                Text('Choose from Gallery'),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
