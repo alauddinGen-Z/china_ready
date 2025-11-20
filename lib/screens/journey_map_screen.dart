@@ -1,55 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/journey_step.dart';
+import '../providers/journey_provider.dart';
 import '../widgets/copy_badge.dart';
 import 'smart_vault_screen.dart';
 
-class JourneyMapScreen extends StatefulWidget {
+class JourneyMapScreen extends StatelessWidget {
   const JourneyMapScreen({super.key});
-
-  @override
-  State<JourneyMapScreen> createState() => _JourneyMapScreenState();
-}
-
-class _JourneyMapScreenState extends State<JourneyMapScreen> {
-  final List<JourneyStep> _steps = [
-    JourneyStep(
-      id: '1',
-      title: 'Accepted',
-      description: 'You have your Admission Letter.',
-      status: JourneyStatus.completed,
-      subTasks: ['Check admission letter details', 'Confirm acceptance'],
-      requiredDocuments: {'Admission Letter': 2},
-    ),
-    JourneyStep(
-      id: '2',
-      title: 'The JW Form',
-      description: 'The most confusing document.',
-      status: JourneyStatus.active,
-      subTasks: ['Receive JW202/JW201 Form', 'Verify personal details'],
-      requiredDocuments: {'JW202 Form': 2, 'Passport': 5},
-    ),
-    JourneyStep(
-      id: '3',
-      title: 'Visa Application',
-      description: 'COVA form & Embassy appointment.',
-      status: JourneyStatus.locked,
-      subTasks: ['Fill COVA form', 'Book appointment', 'Take visa photo'],
-    ),
-    JourneyStep(
-      id: '4',
-      title: 'Flight & Packing',
-      description: 'Pre-departure preparation.',
-      status: JourneyStatus.locked,
-      subTasks: ['Book flight', 'Pack essentials', 'Buy VPN'],
-    ),
-    JourneyStep(
-      id: '5',
-      title: 'The Landing',
-      description: 'Police Registration & Sim Card.',
-      status: JourneyStatus.locked,
-      subTasks: ['Register with police', 'Get SIM card', 'Open bank account'],
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -68,18 +25,22 @@ class _JourneyMapScreenState extends State<JourneyMapScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _steps.length,
-        itemBuilder: (context, index) {
-          final step = _steps[index];
-          return _buildStepCard(step, index == _steps.length - 1);
+      body: Consumer<JourneyProvider>(
+        builder: (context, provider, child) {
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: provider.steps.length,
+            itemBuilder: (context, index) {
+              final step = provider.steps[index];
+              return _buildStepCard(context, step, index == provider.steps.length - 1);
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildStepCard(JourneyStep step, bool isLast) {
+  Widget _buildStepCard(BuildContext context, JourneyStep step, bool isLast) {
     final isLocked = step.status == JourneyStatus.locked;
     
     return IntrinsicHeight(
@@ -159,9 +120,20 @@ class _JourneyMapScreenState extends State<JourneyMapScreen> {
                               spacing: 8,
                               runSpacing: 8,
                               children: step.requiredDocuments.entries.map((e) {
-                                return CopyBadge(
-                                  documentName: e.key,
-                                  count: e.value,
+                                final isUploaded = Provider.of<JourneyProvider>(context).isDocumentUploaded(e.key);
+                                return Stack(
+                                  children: [
+                                    CopyBadge(
+                                      documentName: e.key,
+                                      count: e.value,
+                                    ),
+                                    if (isUploaded)
+                                      const Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        child: Icon(Icons.check_circle, size: 12, color: Colors.green),
+                                      ),
+                                  ],
                                 );
                               }).toList(),
                             ),
@@ -170,7 +142,7 @@ class _JourneyMapScreenState extends State<JourneyMapScreen> {
                           if (step.status == JourneyStatus.active)
                             ElevatedButton.icon(
                               onPressed: () {
-                                // Upload logic
+                                _showUploadDialog(context, step);
                               },
                               icon: const Icon(Icons.upload_file),
                               label: const Text('Upload Documents'),
@@ -184,6 +156,30 @@ class _JourneyMapScreenState extends State<JourneyMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showUploadDialog(BuildContext context, JourneyStep step) {
+    showDialog(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Select Document to Upload'),
+        children: step.requiredDocuments.keys.map((docName) {
+          return SimpleDialogOption(
+            onPressed: () {
+              Provider.of<JourneyProvider>(context, listen: false).uploadDocument(docName);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$docName uploaded to Smart Vault!')),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(docName),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/journey_provider.dart';
 
 class SmartVaultScreen extends StatelessWidget {
   const SmartVaultScreen({super.key});
@@ -9,21 +11,33 @@ class SmartVaultScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Smart Vault'),
       ),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(16),
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        children: [
-          _buildDocCard('Passport', 'Verified', Colors.green),
-          _buildDocCard('JW202 Form', 'Draft', Colors.grey),
-          _buildDocCard('Admission Letter', 'Verified', Colors.green),
-          _buildAddCard(),
-        ],
+      body: Consumer<JourneyProvider>(
+        builder: (context, provider, child) {
+          final docs = provider.uploadedDocuments;
+          return GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+            ),
+            itemCount: docs.length + 1, // +1 for Add button
+            itemBuilder: (context, index) {
+              if (index == docs.length) {
+                return _buildAddCard();
+              }
+              final docName = docs.keys.elementAt(index);
+              final isVerified = docs.values.elementAt(index);
+              return _buildDocCard(docName, isVerified ? 'Verified' : 'Draft', isVerified ? Colors.green : Colors.grey);
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Print prep logic
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Generating PDF Bundle... (Mock)')),
+          );
         },
         icon: const Icon(Icons.print),
         label: const Text('Prepare for Printer'),
@@ -38,7 +52,7 @@ class SmartVaultScreen extends StatelessWidget {
         children: [
           const Icon(Icons.insert_drive_file, size: 48, color: Colors.blue),
           const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
